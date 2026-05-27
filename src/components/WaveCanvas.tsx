@@ -7,14 +7,12 @@ interface Props {
 }
 
 const GRID_COLS = 10;
-const GRID_ROWS = 6;
-const SWEEP_PX_PER_FRAME = 1.5;
+const GRID_ROWS = 4;
 
 export const WaveCanvas: React.FC<Props> = ({ txBits, rxBits, bitErrors }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dataRef = useRef({ txBits, rxBits, bitErrors });
-  const sweepRef = useRef(0);
   const rafRef = useRef(0);
 
   useEffect(() => {
@@ -28,7 +26,7 @@ export const WaveCanvas: React.FC<Props> = ({ txBits, rxBits, bitErrors }) => {
 
     const resize = () => {
       canvas.width = container.clientWidth || 400;
-      canvas.height = container.clientHeight || 160;
+      canvas.height = container.clientHeight || 130;
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -41,10 +39,12 @@ export const WaveCanvas: React.FC<Props> = ({ txBits, rxBits, bitErrors }) => {
       const W = canvas.width;
       const H = canvas.height;
 
-      ctx.fillStyle = '#070707';
+      // Background
+      ctx.fillStyle = '#FAFAFA';
       ctx.fillRect(0, 0, W, H);
 
-      ctx.strokeStyle = '#141414';
+      // Grid lines
+      ctx.strokeStyle = '#EEEDFE';
       ctx.lineWidth = 1;
       for (let c = 0; c <= GRID_COLS; c++) {
         const x = Math.round((W / GRID_COLS) * c);
@@ -55,25 +55,33 @@ export const WaveCanvas: React.FC<Props> = ({ txBits, rxBits, bitErrors }) => {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
       }
 
-      ctx.strokeStyle = '#1e1e1e';
+      // Center divider
+      ctx.strokeStyle = '#CECBF6';
       ctx.lineWidth = 1;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath(); ctx.moveTo(0, H * 0.25); ctx.lineTo(W, H * 0.25); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, H * 0.75); ctx.lineTo(W, H * 0.75); ctx.stroke();
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.stroke();
       ctx.setLineDash([]);
 
       const numBits = Math.min(txBits.length, 60);
       if (numBits > 0) {
         const bw = W / numBits;
-        const amp = H * 0.09;
-        const txMid = H * 0.25;
-        const rxMid = H * 0.75;
+        const amp = H * 0.1;
+        const txMid = H * 0.27;
+        const rxMid = H * 0.73;
 
+        // Error highlights
+        for (let i = 0; i < numBits; i++) {
+          if (bitErrors[i]) {
+            ctx.fillStyle = 'rgba(226,75,74,0.10)';
+            ctx.fillRect(i * bw, 0, bw, H);
+          }
+        }
+
+        // TX waveform — purple
         ctx.beginPath();
-        ctx.strokeStyle = '#00FF41';
-        ctx.lineWidth = 1.5;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#00FF41';
+        ctx.strokeStyle = '#7F77DD';
+        ctx.lineWidth = 2.5;
+        ctx.lineJoin = 'round';
         for (let i = 0; i < numBits; i++) {
           const x0 = i * bw;
           const x1 = x0 + bw;
@@ -87,13 +95,12 @@ export const WaveCanvas: React.FC<Props> = ({ txBits, rxBits, bitErrors }) => {
           ctx.lineTo(x1, y);
         }
         ctx.stroke();
-        ctx.shadowBlur = 0;
 
+        // RX waveform — teal
         ctx.beginPath();
-        ctx.strokeStyle = '#FFB300';
-        ctx.lineWidth = 1.5;
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = '#FFB300';
+        ctx.strokeStyle = '#1D9E75';
+        ctx.lineWidth = 2.5;
+        ctx.lineJoin = 'round';
         for (let i = 0; i < numBits; i++) {
           const x0 = i * bw;
           const x1 = x0 + bw;
@@ -107,30 +114,23 @@ export const WaveCanvas: React.FC<Props> = ({ txBits, rxBits, bitErrors }) => {
           ctx.lineTo(x1, y);
         }
         ctx.stroke();
-        ctx.shadowBlur = 0;
 
+        // Error tick marks
         for (let i = 0; i < numBits; i++) {
           if (bitErrors[i]) {
             const x = Math.round(i * bw + bw / 2);
-            ctx.fillStyle = 'rgba(255,59,48,0.35)';
-            ctx.fillRect(x - 1, 0, 3, H);
+            ctx.fillStyle = 'rgba(226,75,74,0.6)';
+            ctx.fillRect(x - 1, 0, 2, H);
           }
         }
       }
 
-      sweepRef.current = (sweepRef.current + SWEEP_PX_PER_FRAME) % W;
-      const sx = sweepRef.current;
-      const sweepGrad = ctx.createLinearGradient(sx - 20, 0, sx + 6, 0);
-      sweepGrad.addColorStop(0, 'rgba(0,255,65,0)');
-      sweepGrad.addColorStop(1, 'rgba(0,255,65,0.08)');
-      ctx.fillStyle = sweepGrad;
-      ctx.fillRect(sx - 20, 0, 26, H);
-
-      ctx.font = '9px Share Tech Mono';
-      ctx.fillStyle = '#007a1f';
-      ctx.fillText('TX', 4, H * 0.25 - H * 0.09 - 4);
-      ctx.fillStyle = '#e09e00';
-      ctx.fillText('RX', 4, H * 0.75 - H * 0.09 - 4);
+      // Labels
+      ctx.font = '500 11px sans-serif';
+      ctx.fillStyle = '#7F77DD';
+      ctx.fillText('TX', 6, H * 0.27 - H * 0.1 - 5);
+      ctx.fillStyle = '#1D9E75';
+      ctx.fillText('RX', 6, H * 0.73 - H * 0.1 - 5);
 
       rafRef.current = requestAnimationFrame(draw);
     };
@@ -143,7 +143,7 @@ export const WaveCanvas: React.FC<Props> = ({ txBits, rxBits, bitErrors }) => {
   }, []);
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div ref={containerRef} style={{ width: '100%', height: 130, position: 'relative', padding: '0 2px' }}>
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
     </div>
   );

@@ -13,7 +13,15 @@ const BER_MIN = 1e-6;
 const BER_MAX = 0.6;
 const SNR_MIN = 0;
 const SNR_MAX = 20;
-const PAD = { top: 16, right: 16, bottom: 32, left: 44 };
+const PAD = { top: 12, right: 10, bottom: 28, left: 34 };
+
+// Purple, Teal, Amber
+const CURVE_COLORS: Record<ModulationType, string[]> = {
+  BPSK: ['#7F77DD', '#1D9E75', '#EF9F27'],
+  QPSK: ['#7F77DD', '#1D9E75', '#EF9F27'],
+  '8PSK': ['#7F77DD', '#1D9E75', '#EF9F27'],
+};
+const CURVE_DASHES: number[][] = [[], [5, 3], [2, 3]];
 
 function berFn(mod: ModulationType, snrLin: number): number {
   switch (mod) {
@@ -53,8 +61,8 @@ export const BERCanvas: React.FC<Props> = ({
     if (!canvas || !container) return;
 
     const resize = () => {
-      canvas.width = container.clientWidth || 300;
-      canvas.height = container.clientHeight || 200;
+      canvas.width = container.clientWidth || 180;
+      canvas.height = container.clientHeight || 180;
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -69,12 +77,13 @@ export const BERCanvas: React.FC<Props> = ({
       const drawW = W - PAD.left - PAD.right;
       const drawH = H - PAD.top - PAD.bottom;
 
-      ctx.fillStyle = '#070707';
+      ctx.fillStyle = '#FAFAFA';
       ctx.fillRect(0, 0, W, H);
 
-      ctx.strokeStyle = '#141414';
+      // Grid
+      ctx.strokeStyle = '#EEEDFE';
       ctx.lineWidth = 1;
-      for (let snr = SNR_MIN; snr <= SNR_MAX; snr += 2) {
+      for (let snr = SNR_MIN; snr <= SNR_MAX; snr += 5) {
         const x = toCanvasX(snr, drawW);
         ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + drawH); ctx.stroke();
       }
@@ -85,62 +94,72 @@ export const BERCanvas: React.FC<Props> = ({
         ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + drawW, y); ctx.stroke();
       }
 
-      ctx.strokeStyle = '#1e1e1e';
-      ctx.lineWidth = 1.5;
+      // Axis border
+      ctx.strokeStyle = '#CECBF6';
+      ctx.lineWidth = 1;
       ctx.strokeRect(PAD.left, PAD.top, drawW, drawH);
 
-      ctx.fillStyle = '#1e1e1e';
-      ctx.font = '8px Share Tech Mono';
+      // Y labels
+      ctx.fillStyle = '#888780';
+      ctx.font = '7px sans-serif';
       ctx.textAlign = 'right';
       for (const exp of logLevels) {
-        const ber = Math.pow(10, exp);
-        const y = toCanvasY(ber, drawH);
-        ctx.fillText(`10^${exp}`, PAD.left - 3, y + 3);
+        if (exp % 2 === 0) {
+          const ber = Math.pow(10, exp);
+          const y = toCanvasY(ber, drawH);
+          ctx.fillText(`1e${exp}`, PAD.left - 3, y + 3);
+        }
       }
 
+      // X labels
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#1e1e1e';
-      for (let snr = 0; snr <= SNR_MAX; snr += 4) {
+      ctx.fillStyle = '#888780';
+      for (let snr = 0; snr <= SNR_MAX; snr += 5) {
         const x = toCanvasX(snr, drawW);
-        ctx.fillText(`${snr}`, x, H - PAD.bottom + 12);
+        ctx.fillText(`${snr}`, x, H - PAD.bottom + 11);
       }
 
-      ctx.fillStyle = '#007a1f';
-      ctx.font = '8px Share Tech Mono';
+      // Axis titles
+      ctx.fillStyle = '#AFA9EC';
+      ctx.font = '8px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('SNR (dB)', PAD.left + drawW / 2, H - 2);
-      ctx.fillStyle = '#007a1f';
       ctx.save();
       ctx.translate(10, PAD.top + drawH / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.fillText('BER', 0, 0);
       ctx.restore();
 
-      const STEPS = 200;
-      ctx.beginPath();
-      ctx.strokeStyle = '#00FF41';
-      ctx.lineWidth = 1.5;
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = '#00FF41';
-      let started = false;
-      for (let i = 0; i <= STEPS; i++) {
-        const snrDb = SNR_MIN + (SNR_MAX - SNR_MIN) * (i / STEPS);
-        const snrLin = snrDbToLinear(snrDb);
-        const ber = berFn(modulation, snrLin);
-        if (ber < BER_MIN || ber > BER_MAX) { started = false; continue; }
-        const x = toCanvasX(snrDb, drawW);
-        const y = toCanvasY(ber, drawH);
-        if (!started) { ctx.moveTo(x, y); started = true; }
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+      // Draw all three curves
+      const mods: ModulationType[] = ['BPSK', 'QPSK', '8PSK'];
+      const colors = ['#534AB7', '#1D9E75', '#EF9F27'];
 
+      mods.forEach((mod, idx) => {
+        ctx.beginPath();
+        ctx.strokeStyle = colors[idx];
+        ctx.lineWidth = idx === 0 ? 2 : 1.5;
+        ctx.setLineDash(CURVE_DASHES[idx]);
+        let started = false;
+        for (let i = 0; i <= 200; i++) {
+          const snrDb = SNR_MIN + (SNR_MAX - SNR_MIN) * (i / 200);
+          const snrLin = snrDbToLinear(snrDb);
+          const ber = berFn(mod, snrLin);
+          if (ber < BER_MIN || ber > BER_MAX) { started = false; continue; }
+          const x = toCanvasX(snrDb, drawW);
+          const y = toCanvasY(ber, drawH);
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+
+      // BER history trail
       if (berHistory.length > 1) {
         ctx.beginPath();
-        ctx.strokeStyle = 'rgba(255,179,0,0.6)';
+        ctx.strokeStyle = 'rgba(127,119,221,0.4)';
         ctx.lineWidth = 1;
-        started = false;
+        let started = false;
         for (const pt of berHistory) {
           if (pt.ber < BER_MIN || pt.ber > BER_MAX) { started = false; continue; }
           const x = toCanvasX(pt.snrDb, drawW);
@@ -151,16 +170,19 @@ export const BERCanvas: React.FC<Props> = ({
         ctx.stroke();
       }
 
+      // Current operating point
       if (currentBer >= BER_MIN && currentBer <= BER_MAX) {
         const cx = toCanvasX(currentSnrDb, drawW);
         const cy = toCanvasY(currentBer, drawH);
         ctx.beginPath();
         ctx.arc(cx, cy, 5, 0, Math.PI * 2);
-        ctx.fillStyle = '#FF3B30';
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = '#FF3B30';
+        ctx.fillStyle = '#E24B4A';
         ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
       }
 
       rafRef.current = requestAnimationFrame(draw);
@@ -174,7 +196,7 @@ export const BERCanvas: React.FC<Props> = ({
   }, []);
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div ref={containerRef} style={{ width: '100%', height: 170, position: 'relative' }}>
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
     </div>
   );

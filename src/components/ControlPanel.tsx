@@ -1,10 +1,4 @@
 import React from 'react';
-import {
-  IonRange,
-  IonSelect,
-  IonSelectOption,
-  IonButton,
-} from '@ionic/react';
 import { ModulationType } from '../utils/modulation';
 
 type SimMode = 'continuous' | 'single' | 'stopped';
@@ -23,169 +17,199 @@ interface Props {
   onReset: () => void;
 }
 
-const s: Record<string, React.CSSProperties> = {
-  container: {
-    padding: '8px 12px',
-    background: '#111111',
-    borderBottom: '1px solid #1e1e1e',
-  },
-  snrBanner: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '10px',
-    padding: '6px 10px',
-    background: '#0d0d0d',
-    border: '1px solid #1e1e1e',
-    flexWrap: 'wrap' as const,
-  },
-  label: {
-    color: '#007a1f',
-    fontSize: '10px',
-    letterSpacing: '0.12em',
-    fontFamily: "'Share Tech Mono', monospace",
-  },
-  valueGreen: {
-    color: '#00FF41',
-    fontSize: '13px',
-    fontFamily: "'Share Tech Mono', monospace",
-    textShadow: '0 0 8px #00FF41',
-    minWidth: '56px',
-  },
-  valueAmber: {
-    color: '#FFB300',
-    fontSize: '13px',
-    fontFamily: "'Share Tech Mono', monospace",
-    textShadow: '0 0 8px #FFB300',
-    minWidth: '56px',
-  },
-  sep: {
-    color: '#1e1e1e',
-    fontSize: '14px',
-    margin: '0 4px',
-  },
-  row: {
-    marginBottom: '6px',
-  },
-  rowLabel: {
-    color: '#007a1f',
-    fontSize: '10px',
-    letterSpacing: '0.1em',
-    fontFamily: "'Share Tech Mono', monospace",
-    marginBottom: '2px',
-    display: 'block',
-  },
-  buttonRow: {
-    display: 'flex',
-    gap: '6px',
-    marginTop: '8px',
-    flexWrap: 'wrap' as const,
-  },
-  selectWrap: {
-    background: '#0d0d0d',
-    border: '1px solid #1e1e1e',
-    padding: '0 4px',
-    marginTop: '2px',
-  },
-};
-
 export const ControlPanel: React.FC<Props> = ({
   snrOffset, onSnrOffset,
   noiseSigma, onNoiseSigma,
   modulation, onModulation,
   mode, onMode,
-  deviceSnr, simSnr,
   onReset,
 }) => {
   return (
-    <div style={s.container}>
-      <div style={s.snrBanner}>
-        <span style={s.label}>SNR DISPOSITIVO</span>
-        <span style={s.valueGreen}>{deviceSnr.toFixed(1)} dB</span>
-        <span style={s.sep}>|</span>
-        <span style={s.label}>SNR SIMULADO</span>
-        <span style={s.valueAmber}>{simSnr.toFixed(1)} dB</span>
+    <div style={s.card}>
+      <div style={s.cardHdr}>
+        <div style={{ ...s.chip, background: '#EEEDFE', color: '#534AB7' }}>⚙</div>
+        <span style={s.cardTitle}>Parámetros de simulación</span>
       </div>
 
-      <div style={s.row}>
-        <span style={s.rowLabel}>
-          OFFSET SNR: {snrOffset >= 0 ? '+' : ''}{snrOffset} dB
-        </span>
-        <IonRange
-          min={-20}
-          max={20}
-          step={1}
-          value={snrOffset}
-          onIonInput={(e) => onSnrOffset(e.detail.value as number)}
+      {/* SNR offset slider */}
+      <div style={s.ctrlItem}>
+        <div style={s.ctrlLabel}>
+          <span style={s.ctrlName}>Offset SNR</span>
+          <span style={s.ctrlVal}>{snrOffset >= 0 ? '+' : ''}{snrOffset} dB</span>
+        </div>
+        <input
+          type="range" min={-20} max={20} step={1} value={snrOffset}
+          onChange={e => onSnrOffset(Number(e.target.value))}
+          style={s.slider}
         />
       </div>
 
-      <div style={s.row}>
-        <span style={s.rowLabel}>RUIDO ADICIONAL sigma: {noiseSigma.toFixed(2)}</span>
-        <IonRange
-          min={0.01}
-          max={1.0}
-          step={0.01}
-          value={noiseSigma}
-          color="secondary"
-          onIonInput={(e) => onNoiseSigma(e.detail.value as number)}
+      {/* Noise sigma slider */}
+      <div style={s.ctrlItem}>
+        <div style={s.ctrlLabel}>
+          <span style={s.ctrlName}>Ruido adicional σ</span>
+          <span style={s.ctrlVal}>{noiseSigma.toFixed(2)}</span>
+        </div>
+        <input
+          type="range" min={0.01} max={1.0} step={0.01} value={noiseSigma}
+          onChange={e => onNoiseSigma(Number(e.target.value))}
+          style={{ ...s.slider, accentColor: '#1D9E75' }}
         />
       </div>
 
-      <div style={s.row}>
-        <span style={s.rowLabel}>MODULACION</span>
+      {/* Modulation select */}
+      <div style={s.ctrlItem}>
+        <div style={s.ctrlLabel}>
+          <span style={s.ctrlName}>Modulación</span>
+        </div>
         <div style={s.selectWrap}>
-          <IonSelect
+          <select
             value={modulation}
-            onIonChange={(e) => onModulation(e.detail.value as ModulationType)}
-            interface="popover"
-            style={{ color: '#00FF41', '--placeholder-color': '#007a1f' }}
+            onChange={e => onModulation(e.target.value as ModulationType)}
+            style={s.select}
           >
-            <IonSelectOption value="BPSK">BPSK</IonSelectOption>
-            <IonSelectOption value="QPSK">QPSK</IonSelectOption>
-            <IonSelectOption value="8PSK">8-PSK</IonSelectOption>
-          </IonSelect>
+            <option value="BPSK">BPSK — 1 bit/símbolo</option>
+            <option value="QPSK">QPSK — 2 bits/símbolo</option>
+            <option value="8PSK">8-PSK — 3 bits/símbolo</option>
+          </select>
         </div>
       </div>
 
-      <div style={s.buttonRow}>
-        <IonButton
-          size="small"
-          fill={mode === 'continuous' ? 'solid' : 'outline'}
-          color="primary"
+      {/* Mode buttons */}
+      <div style={s.btnRow}>
+        <button
+          style={{ ...s.btn, ...(mode === 'continuous' ? s.btnActive : s.btnOutline) }}
           onClick={() => onMode('continuous')}
-          style={{ '--border-radius': '2px' } as React.CSSProperties}
         >
-          CONTINUA
-        </IonButton>
-        <IonButton
-          size="small"
-          fill="outline"
-          color="secondary"
-          onClick={() => { onMode('single'); }}
-          style={{ '--border-radius': '2px' } as React.CSSProperties}
+          ▶ Continua
+        </button>
+        <button
+          style={{ ...s.btn, ...s.btnOutline }}
+          onClick={() => onMode('single')}
         >
-          DISPARO
-        </IonButton>
-        <IonButton
-          size="small"
-          fill={mode === 'stopped' ? 'solid' : 'outline'}
-          color="danger"
+          ⚡ Disparo
+        </button>
+        <button
+          style={{ ...s.btn, ...(mode === 'stopped' ? s.btnDanger : s.btnDangerOutline) }}
           onClick={() => onMode('stopped')}
-          style={{ '--border-radius': '2px' } as React.CSSProperties}
         >
-          DETENER
-        </IonButton>
-        <IonButton
-          size="small"
-          fill="outline"
-          color="medium"
+          ■ Detener
+        </button>
+        <button
+          style={{ ...s.btn, ...s.btnGray }}
           onClick={onReset}
-          style={{ '--border-radius': '2px' } as React.CSSProperties}
         >
-          RESET
-        </IonButton>
+          ↺ Reset
+        </button>
       </div>
     </div>
   );
+};
+
+const s: Record<string, React.CSSProperties> = {
+  card: {
+    background: '#fff',
+    borderRadius: 14,
+    border: '0.5px solid #CECBF6',
+    overflow: 'hidden',
+  },
+  cardHdr: {
+    padding: '12px 14px 4px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  chip: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 14,
+    flexShrink: 0,
+  },
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: '#3C3489',
+  },
+  ctrlItem: {
+    padding: '8px 14px 4px',
+  },
+  ctrlLabel: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  ctrlName: {
+    fontSize: 12,
+    color: '#5F5E5A',
+  },
+  ctrlVal: {
+    fontSize: 12,
+    fontWeight: 500,
+    color: '#534AB7',
+  },
+  slider: {
+    width: '100%',
+    accentColor: '#7F77DD',
+    cursor: 'pointer',
+    height: 4,
+  } as React.CSSProperties,
+  selectWrap: {
+    background: '#F4F1FF',
+    border: '0.5px solid #CECBF6',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  select: {
+    width: '100%',
+    padding: '8px 12px',
+    border: 'none',
+    background: 'transparent',
+    fontSize: 13,
+    fontWeight: 500,
+    color: '#3C3489',
+    cursor: 'pointer',
+    outline: 'none',
+  },
+  btnRow: {
+    display: 'flex',
+    gap: 6,
+    padding: '10px 14px 14px',
+    flexWrap: 'wrap' as const,
+  },
+  btn: {
+    flex: 1,
+    minWidth: 70,
+    padding: '8px 4px',
+    borderRadius: 9,
+    border: 'none',
+    fontSize: 11,
+    fontWeight: 500,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    transition: 'opacity 0.1s',
+  },
+  btnActive: {
+    background: '#534AB7',
+    color: '#EEEDFE',
+  },
+  btnOutline: {
+    background: '#EEEDFE',
+    color: '#534AB7',
+  },
+  btnDanger: {
+    background: '#E24B4A',
+    color: '#FCEBEB',
+  },
+  btnDangerOutline: {
+    background: '#FCEBEB',
+    color: '#A32D2D',
+  },
+  btnGray: {
+    background: '#F1EFE8',
+    color: '#5F5E5A',
+  },
 };

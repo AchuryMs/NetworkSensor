@@ -11,26 +11,30 @@ interface Props {
 function getChannelStatus(snrDb: number): {
   title: string;
   body: string;
-  color: string;
+  dotColor: string;
+  titleColor: string;
 } {
   if (snrDb > 15) {
     return {
-      title: 'CANAL LIMPIO',
-      body: 'La relacion senal-ruido es alta. Los simbolos llegan casi sin degradacion. La probabilidad de error de bit tiende a cero. Sistema operando en condicion optima.',
-      color: '#00FF41',
+      title: 'Canal limpio',
+      body: 'La relación señal-ruido es alta. Los símbolos llegan casi sin degradación. La probabilidad de error de bit tiende a cero. Sistema operando en condición óptima.',
+      dotColor: '#1D9E75',
+      titleColor: '#085041',
     };
   }
   if (snrDb >= 8) {
     return {
-      title: 'RUIDO MODERADO',
-      body: 'El ruido AWGN comienza a solaparse con los simbolos validos. Algunos bits se corrompen. La tasa de error de bit es perceptible y crece exponencialmente al reducir el SNR.',
-      color: '#FFB300',
+      title: 'Ruido moderado',
+      body: 'El ruido AWGN comienza a solaparse con los símbolos válidos. Algunos bits se corrompen. La tasa de error de bit crece exponencialmente al reducir el SNR.',
+      dotColor: '#EF9F27',
+      titleColor: '#633806',
     };
   }
   return {
-    title: 'CANAL DEGRADADO',
-    body: 'El ruido domina sobre la senal util. La constelacion se colapsa. La comunicacion se vuelve inestable. BER se aproxima a 0.5 (equivalente a decision aleatoria).',
-    color: '#FF3B30',
+    title: 'Canal degradado',
+    body: 'El ruido domina sobre la señal útil. La constelación se colapsa. La comunicación se vuelve inestable. BER se aproxima a 0.5, equivalente a decisión aleatoria.',
+    dotColor: '#E24B4A',
+    titleColor: '#791F1F',
   };
 }
 
@@ -38,86 +42,26 @@ function getBerFormula(mod: ModulationType): { formula: string; detail: string }
   switch (mod) {
     case 'BPSK':
       return {
-        formula: 'Pe = Q( sqrt(2 * Eb/N0) )',
-        detail: 'BPSK: modulacion binaria de fase. Maximo margen de ruido para 1 bit/simbolo.',
+        formula: 'Pe = Q( √(2 · Eb/N₀) )',
+        detail: 'Modulación binaria de fase. Máximo margen de ruido para 1 bit/símbolo.',
       };
     case 'QPSK':
       return {
-        formula: 'Pe = Q( sqrt(Eb/N0) )',
-        detail: 'QPSK: 4 fases, 2 bits/simbolo. Misma BER que BPSK con el doble de eficiencia espectral.',
+        formula: 'Pe = Q( √(Eb/N₀) )',
+        detail: '4 fases, 2 bits/símbolo. Misma BER que BPSK con el doble de eficiencia espectral.',
       };
     case '8PSK':
       return {
-        formula: 'Pe = (2/3) * Q( sqrt(2*Eb/N0) * sin(pi/8) )',
-        detail: '8-PSK: 8 fases, 3 bits/simbolo. Mayor eficiencia espectral pero menor margen de ruido.',
+        formula: 'Pe ≈ (2/3)·Q( √(2·Eb/N₀)·sin(π/8) )',
+        detail: '8 fases, 3 bits/símbolo. Mayor eficiencia espectral pero menor margen de ruido.',
       };
   }
 }
 
-const s: Record<string, React.CSSProperties> = {
-  container: {
-    padding: '10px 12px',
-    background: '#0d0d0d',
-    border: '1px solid #1e1e1e',
-    margin: '0',
-  },
-  titleRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    marginBottom: '8px',
-  },
-  dot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    flexShrink: 0,
-  },
-  title: {
-    fontSize: '11px',
-    letterSpacing: '0.18em',
-    fontFamily: "'Share Tech Mono', monospace",
-    fontWeight: 'bold',
-  },
-  body: {
-    color: '#7a7a7a',
-    fontSize: '10px',
-    lineHeight: '1.6',
-    letterSpacing: '0.04em',
-    fontFamily: "'Share Tech Mono', monospace",
-    marginBottom: '10px',
-  },
-  divider: {
-    height: '1px',
-    background: '#1e1e1e',
-    margin: '8px 0',
-  },
-  formulaLabel: {
-    color: '#007a1f',
-    fontSize: '9px',
-    letterSpacing: '0.15em',
-    fontFamily: "'Share Tech Mono', monospace",
-    marginBottom: '4px',
-  },
-  formula: {
-    color: '#FFB300',
-    fontSize: '11px',
-    letterSpacing: '0.06em',
-    fontFamily: "'Share Tech Mono', monospace",
-    textShadow: '0 0 6px rgba(255,179,0,0.4)',
-    marginBottom: '6px',
-    padding: '6px 8px',
-    background: '#111111',
-    border: '1px solid #1e1e1e',
-  },
-  detail: {
-    color: '#555555',
-    fontSize: '9px',
-    lineHeight: '1.5',
-    letterSpacing: '0.04em',
-    fontFamily: "'Share Tech Mono', monospace",
-  },
-};
+function formatBer(ber: number): string {
+  if (ber <= 0 || ber < 1e-6) return '< 1e-6';
+  return ber.toExponential(3);
+}
 
 export const EduPanel: React.FC<Props> = ({ snrDb, modulation, berActual, berTheoretical }) => {
   const channel = getChannelStatus(snrDb);
@@ -125,34 +69,118 @@ export const EduPanel: React.FC<Props> = ({ snrDb, modulation, berActual, berThe
 
   return (
     <div style={s.container}>
-      <div style={s.titleRow}>
-        <div style={{ ...s.dot, background: channel.color, boxShadow: `0 0 8px ${channel.color}` }} />
-        <span style={{ ...s.title, color: channel.color }}>{channel.title}</span>
+      {/* Channel status */}
+      <div style={s.statusRow}>
+        <div style={{ ...s.dot, background: channel.dotColor }} />
+        <span style={{ ...s.statusTitle, color: channel.titleColor }}>{channel.title}</span>
       </div>
       <p style={s.body}>{channel.body}</p>
 
       <div style={s.divider} />
 
-      <div style={s.formulaLabel}>FORMULA BER — {modulation}</div>
-      <div style={s.formula}>{formula}</div>
+      {/* BER formula */}
+      <div style={s.formulaLabel}>Fórmula BER — {modulation}</div>
+      <div style={s.formulaBox}>
+        <span style={s.formulaText}>{formula}</span>
+      </div>
       <p style={s.detail}>{detail}</p>
 
       <div style={s.divider} />
 
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-        <div>
-          <div style={s.formulaLabel}>BER SIMULADO</div>
-          <div style={{ ...s.formula, color: '#00FF41', textShadow: '0 0 6px rgba(0,255,65,0.4)', fontSize: '10px' }}>
-            {berActual > 0 ? berActual.toExponential(3) : '< 10^-6'}
-          </div>
+      {/* BER comparison */}
+      <div style={s.berRow}>
+        <div style={s.berBlock}>
+          <div style={s.berTag}>BER simulado</div>
+          <div style={{ ...s.berVal, color: '#3C3489' }}>{formatBer(berActual)}</div>
         </div>
-        <div>
-          <div style={s.formulaLabel}>BER TEORICO</div>
-          <div style={{ ...s.formula, fontSize: '10px' }}>
-            {berTheoretical > 0 ? berTheoretical.toExponential(3) : '< 10^-6'}
-          </div>
+        <div style={s.berBlock}>
+          <div style={s.berTag}>BER teórico</div>
+          <div style={{ ...s.berVal, color: '#854F0B' }}>{formatBer(berTheoretical)}</div>
         </div>
       </div>
     </div>
   );
+};
+
+const s: Record<string, React.CSSProperties> = {
+  container: {
+    padding: '10px 14px 16px',
+  },
+  statusRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  dot: {
+    width: 9,
+    height: 9,
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  statusTitle: {
+    fontSize: 13,
+    fontWeight: 500,
+  },
+  body: {
+    color: '#5F5E5A',
+    fontSize: 12,
+    lineHeight: 1.65,
+    marginBottom: 10,
+  },
+  divider: {
+    height: 1,
+    background: '#EEEDFE',
+    margin: '10px 0',
+  },
+  formulaLabel: {
+    color: '#7F77DD',
+    fontSize: 10,
+    fontWeight: 500,
+    letterSpacing: '0.05em',
+    marginBottom: 6,
+    textTransform: 'uppercase' as const,
+  },
+  formulaBox: {
+    background: '#F4F1FF',
+    border: '0.5px solid #CECBF6',
+    borderRadius: 8,
+    padding: '9px 12px',
+    marginBottom: 8,
+  },
+  formulaText: {
+    color: '#3C3489',
+    fontSize: 13,
+    fontFamily: 'var(--font-mono, monospace)',
+    fontWeight: 500,
+  },
+  detail: {
+    color: '#888780',
+    fontSize: 11,
+    lineHeight: 1.55,
+  },
+  berRow: {
+    display: 'flex',
+    gap: 8,
+  },
+  berBlock: {
+    flex: 1,
+    background: '#F4F1FF',
+    border: '0.5px solid #CECBF6',
+    borderRadius: 8,
+    padding: '8px 12px',
+  },
+  berTag: {
+    color: '#7F77DD',
+    fontSize: 10,
+    fontWeight: 500,
+    marginBottom: 4,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.04em',
+  },
+  berVal: {
+    fontSize: 14,
+    fontWeight: 500,
+    fontFamily: 'var(--font-mono, monospace)',
+  },
 };

@@ -42,22 +42,18 @@ export function useSignalMetrics(activeSource: NetworkSource): SignalMetrics {
     async function readNetworkMetrics() {
       try {
         const status = await Network.getStatus();
-
         if (!status.connected) {
           if (!cancelledRef.current) {
             setMetrics(prev => ({ ...prev, connected: false, snrDb: 0 }));
           }
           return;
         }
-
         const connType = status.connectionType;
-
         if (activeSource === 'wifi') {
           rssiRef.current += (Math.random() - 0.5) * 3;
           rssiRef.current = Math.max(-90, Math.min(-40, rssiRef.current));
           const rssi = Math.round(rssiRef.current);
           const snr = rssiToSnr(rssi);
-
           if (!cancelledRef.current) {
             setMetrics({
               source: 'wifi',
@@ -68,12 +64,12 @@ export function useSignalMetrics(activeSource: NetworkSource): SignalMetrics {
             });
           }
         } else {
-          const netLabel = connType === 'cellular' ? '4G LTE' :
+          const netLabel =
+            connType === 'cellular' ? '4G LTE' :
             connType === 'wifi' ? 'WiFi@Cel' :
             connType.toUpperCase();
           const typeForLookup = connType === 'cellular' ? '4g' : connType;
           const snr = cellularSnrFromType(typeForLookup);
-
           if (!cancelledRef.current) {
             setMetrics({
               source: 'cellular',
