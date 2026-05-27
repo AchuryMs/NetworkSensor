@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Medidor Canal</string>
+    <string name="title_activity_main">Medidor Canal</string>
+    <string name="package_name">com.tuapp.medidorcanal</string>
+    <string name="custom_url_scheme">com.tuapp.medidorcanal</string>
+</resources>
